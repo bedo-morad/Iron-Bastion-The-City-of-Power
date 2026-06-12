@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://c0ibu5uyx2gcv"]
+
+[ext_resource type="Script" uid="uid://cjafu3e5j5nt" path="res://Levels/Scripts/player_spawn.gd" id="1_lyuil"]
+[ext_resource type="Texture2D" uid="uid://dsdglkyerh57f" path="res://Player/Sprites/PlayerSprite02.png" id="1_y6scc"]
+
+[node name="PlayerSpawn" type="Node2D" unique_id=2019545928]
+script = ExtResource("1_lyuil")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1111860915]
+modulate = Color(0.07058824, 1, 0, 0.5568628)
+position = Vector2(0, -20)
+texture = ExtResource("1_y6scc")
+hframes = 16
+vframes = 3

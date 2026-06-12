@@ -1,0 +1,11 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# Godot editor temp/swap files
+*.tmp
+
+# IDE / editor state
+.idea/
+.vscode/
+.zed/
