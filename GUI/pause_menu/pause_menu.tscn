@@ -21,13 +21,18 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -50.0
-offset_top = -33.0
-offset_right = 50.0
-offset_bottom = 33.0
+offset_left = -35.0
+offset_top = -43.0
+offset_right = 35.0
+offset_bottom = 111.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 5
 alignment = 1
+
+[node name="Button_Resume" type="Button" parent="VBoxContainer" unique_id=488587585]
+layout_mode = 2
+text = "Resume"
 
 [node name="Button_Save" type="Button" parent="VBoxContainer" unique_id=568162017]
 layout_mode = 2
@@ -37,16 +42,21 @@ text = "Save"
 layout_mode = 2
 text = "Load"
 
+[node name="Button_Quit" type="Button" parent="VBoxContainer" unique_id=1467131073]
+layout_mode = 2
+text = "Quit
+"
+
 [node name="Label" type="Label" parent="." unique_id=1858555022]
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -114.5
-offset_top = -75.0
-offset_right = 114.5
-offset_bottom = -52.0
+offset_left = -114.0
+offset_top = -86.0
+offset_right = 115.0
+offset_bottom = -63.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(1, 1, 1, 0.72156864)

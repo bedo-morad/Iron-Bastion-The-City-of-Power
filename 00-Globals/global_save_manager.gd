@@ -18,6 +18,18 @@ var current_save : Dictionary = {
 	quests = []
 }
 
+func _unhandled_input(event):
+	if event.is_action_pressed("quick_save"):
+		get_tree().paused = true
+		save_game()
+		get_tree().paused = false
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("quick_load"):
+		get_tree().paused = true
+		load_game()
+		get_tree().paused = false
+		get_viewport().set_input_as_handled()
+
 func save_game()-> void:
 	update_player_data()
 	update_scene_path()
@@ -25,7 +37,7 @@ func save_game()-> void:
 	var save_json = JSON.stringify(current_save)
 	file.store_line( save_json )
 	game_saved.emit()
-	print("save") 
+	ToastManager.push_message("Game Saved") 
 	
 func load_game()-> void:
 	var file := FileAccess.open(SAVE_PATH + "save.sav",FileAccess.READ)
@@ -43,7 +55,7 @@ func load_game()-> void:
 
 	game_loaded.emit()
 	
-	print("load")
+	ToastManager.push_message("Game Loaded") 
 
 func update_player_data() -> void:
 	var player : Player = PlayerManager.player
