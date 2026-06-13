@@ -19,7 +19,7 @@ Intended scope (✅ built · 🚧 partial · ⬜ not started):
 - 🚧 World exploration — multi-room level transitions exist (`Levels/Area01/01–03`); the world is still small
 - ⬜ Inventory (Items - Enemy Drops - Treasure Chest)
 - ⬜ Puzzles 
-- ⬜ Persistent Data
+- 🚧 Persistent Data — pause menu with Save/Load works (`SaveManager` persists current level + player HP/position); `items` / `persistence` / `quests` fields exist in the save dict but aren't wired up yet
 - ⬜ Boomerang
 - ⬜ Music & Audio Manager
 - ⬜ NPCs
@@ -47,8 +47,10 @@ Main scene: `Levels/Area01/01.tscn` (set via UID `uid://bbytmlooyyxjw` in `proje
 |---|---|---|
 | `LevelManager` | `00-Globals/global_level_manager.gd` | Tilemap bounds (`tile_map_bounds_changed`) **and** level-load orchestration: `load_new_level()`, `level_load_started` / `level_loaded` signals |
 | `PlayerHud` | `GUI/HUD/player_hud.tscn` | On-screen heart HUD; redrawn via `update_hp(hp, max_hp)` |
-| `PlayerManager` | `00-Globals/global_player_manager.gd` | **Instantiates and owns** the `Player`; reparents it across levels |
+| `PlayerManager` | `00-Globals/global_player_manager.gd` | **Instantiates and owns** the `Player`; reparents it across levels; `set_hp()` / `set_player_position()` used by `SaveManager` on load |
 | `SceneTransition` | `GUI/scene_transition/scene_transition.tscn` | Full-screen fade overlay; `fade_out()` / `fade_in()` |
+| `SaveManager` | `00-Globals/global_save_manager.gd` | Save/load to `user://save.sav` (JSON); `save_game()` / `load_game()`, `game_saved` / `game_loaded` signals |
+| `PauseMenu` | `GUI/pause_menu/pause_menu.tscn` | Pause overlay (`process_mode = ALWAYS`, `layer = 3`); toggled by the `pause` action; Save/Load buttons call `SaveManager` |
 
 > The former `MCPRuntime` autoload (and the `godot_mcp_*` / `auto_reload` editor plugins) are **no longer enabled** — only `rider-plugin` remains. The addon folders are still on disk but disabled in `project.godot`.
 
@@ -107,6 +109,14 @@ Levels live under `Levels/` (`Area01/01.tscn`, `02.tscn`, `03.tscn`, plus the `P
 
 `SceneTransition` (`GUI/scene_transition/scene_transition.gd`, `CanvasLayer`, autoload) is a full-screen black `ColorRect` with `fade_out()` / `fade_in()` (0.2 s each, `await`-able). Its `process_mode = ALWAYS` so fades animate while `LevelManager` holds the tree paused. Triggered only by `LevelManager.load_new_level()`.
 
+### Pause Menu & Save/Load
+
+- **`PauseMenu`** (`GUI/pause_menu/pause_menu.gd`, `CanvasLayer`, autoload, `process_mode = ALWAYS`, `layer = 3`). `_unhandled_input` toggles on the `pause` action: `show_pause_menu()` sets `get_tree().paused = true` and grabs focus on the Save button; `hide_pause_menu()` unpauses. The Save/Load buttons call `SaveManager.save_game()` / `SaveManager.load_game()` (the Load handler `await`s `LevelManager.level_load_started` before hiding the menu so it doesn't close before the scene swap begins).
+- **`SaveManager`** (`00-Globals/global_save_manager.gd`, autoload) — single-slot JSON save at `user://save.sav`. Holds an in-memory `current_save: Dictionary` with `scene_path`, `player {hp, max_hp, pos_x, pos_y}`, and stub arrays for `items` / `persistence` / `quests` (declared but not yet written/read by anything). Signals: `game_saved`, `game_loaded`.
+  - `save_game()` — calls `update_player_data()` (reads `PlayerManager.player.hp` / `max_hp` / `global_position`) and `update_scene_path()` (scans `get_tree().root` children for a `Level` and stores its `scene_file_path`), `JSON.stringify`s the dict, writes one line, emits `game_saved`.
+  - `load_game()` — parses the file, calls `LevelManager.load_new_level(scene_path, "", Vector2.ZERO)` (empty `target_transition` → no `LevelTransition` repositions the player), `await`s `level_load_started`, restores position via `PlayerManager.set_player_position()` and HP via `PlayerManager.set_hp()`, `await`s `level_loaded`, then emits `game_loaded`.
+- **`PlayerManager.set_hp(hp, max_hp)`** — sets `player.max_hp` / `player.hp` then calls `player.update_hp(0)` to refresh the HUD without changing HP again.
+
 ### Physics Layers (`project.godot`)
 
 | Layer | Name |
@@ -118,7 +128,7 @@ Levels live under `Levels/` (`Area01/01.tscn`, `02.tscn`, `03.tscn`, plus the `P
 
 ### Input Actions
 
-`up`, `down`, `left`, `right`, `attack` — WASD + arrow keys + gamepad.
+`up`, `down`, `left`, `right`, `attack`, `pause` — WASD + arrow keys + gamepad (`pause` = Esc / gamepad button 6). Godot's built-in UI actions (`ui_accept`, `ui_cancel`, `ui_up` / `ui_down` / `ui_left` / `ui_right`) are also re-bound in `project.godot` so the pause menu navigates with both keyboard and gamepad.
 
 ### Display
 
@@ -136,6 +146,7 @@ Viewport: 480×270, window: 960×540 (2× integer scale), stretch mode: `viewpor
 - **`Wonder` spelling:** the wander state is spelled `Wonder` (class, node, file) throughout — match it.
 - **Animation naming convention:** `{state}_{direction}` (e.g. `walk_down`, `attack_side`, `stun_up`). Directions: `down`, `up`, `side`.
 - **Sprite mirroring:** Left-facing is handled by `sprite.scale.x = -1`, not a separate animation.
+- **Save/Load skips `LevelTransition` placement:** `SaveManager.load_game()` calls `LevelManager.load_new_level(path, "", Vector2.ZERO)` with an empty `target_transition`, so no `LevelTransition` matches and *no* node repositions the player on load. `SaveManager` then sets the player's position itself (between `level_load_started` and `level_loaded`). Don't add logic that assumes a `LevelTransition` will run on every load.
 
 ## Editor Plugins
 
