@@ -158,3 +158,7 @@ layout_mode = 2
 
 [node name="InventorySlot10" parent="Control/PanelContainer/GridContainer" unique_id=2113175256 instance=ExtResource("3_rsqrg")]
 layout_mode = 2
+
+[node name="ItemEffectAudio" type="AudioStreamPlayer" parent="Control" unique_id=1382767725]
+volume_db = -10.0
+max_polyphony = 4

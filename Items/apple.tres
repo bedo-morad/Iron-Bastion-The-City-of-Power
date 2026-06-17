@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://4hcuvpjxk66y"]
+
+[ext_resource type="Script" uid="uid://bgj8xfgwrhwin" path="res://Items/item_effect/item_effect.gd" id="1_xwhp1"]
+[ext_resource type="AudioStream" uid="uid://dkijoo6aoa5rw" path="res://Items/item_effect/hp-up-2.wav" id="2_3wksx"]
+[ext_resource type="Script" uid="uid://b24qg7w85ixsf" path="res://Items/scripts/item_data.gd" id="2_ovoyb"]
+[ext_resource type="Script" uid="uid://brfl8pb5wbga5" path="res://Items/item_effect/heal_item_effect.gd" id="3_nj3b8"]
+[ext_resource type="Texture2D" uid="uid://cfckcnq86p87s" path="res://Items/sprites/items.png" id="3_ovoyb"]
+
+[sub_resource type="Resource" id="Resource_xq26w"]
+script = ExtResource("3_nj3b8")
+audio = ExtResource("2_3wksx")
+metadata/_custom_type_script = "uid://brfl8pb5wbga5"
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fnc8c"]
+atlas = ExtResource("3_ovoyb")
+region = Rect2(192, 0, 32, 32)
+
+[resource]
+script = ExtResource("2_ovoyb")
+name = "Apple"
+description = "A crisp, red apple. Restores a small amount of health."
+texture = SubResource("AtlasTexture_fnc8c")
+effects = Array[ExtResource("1_xwhp1")]([SubResource("Resource_xq26w")])
+metadata/_custom_type_script = "uid://b24qg7w85ixsf"

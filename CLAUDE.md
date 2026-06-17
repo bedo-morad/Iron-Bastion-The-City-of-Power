@@ -65,7 +65,8 @@ Intended scope (✅ built · 🚧 partial · ⬜ not started):
   - `items` / `persistence` / `quests` fields exist in the save dict but aren't wired up yet.
 - 🚧 Inventory (Items - Enemy Drops - Treasure Chest)
   - Resource-driven inventory renders in the pause menu (`ItemData` / `SlotData` / `InventoryData` + `InventoryUi`).
-  - **Read-only so far:** `InventoryData.add_item()` is an empty stub, nothing collects items, and the inventory isn't saved/loaded yet.
+  - **Pickup → store → use loop works:** `ItemPickup` props in the world add items to the player inventory (`InventoryData.add_item()` stacks or fills the first empty slot), and consumable items run their `ItemEffect`s when a slot is pressed.
+  - TODO: enemy drops, treasure chests, and saving/loading the inventory (still not persisted by `SaveManager`).
 - ⬜ Puzzles
 - ⬜ Boomerang
 - ⬜ Music & Audio Manager
@@ -97,7 +98,7 @@ Listed in `project.godot` → `[autoload]`, in load order:
 |---|---|---|
 | `LevelManager` | `00-Globals/global_level_manager.gd` | Tilemap bounds (`tile_map_bounds_changed`) and level-load orchestration: `load_new_level()`, `level_load_started` / `level_loaded` signals |
 | `PlayerHud` | `GUI/HUD/player_hud.tscn` | On-screen heart HUD; redrawn via `update_hp(hp, max_hp)` |
-| `PlayerManager` | `00-Globals/global_player_manager.gd` | Instantiates and owns the `Player`; reparents it across levels; `set_hp()` / `set_player_position()` used by `SaveManager` on load |
+| `PlayerManager` | `00-Globals/global_player_manager.gd` | Instantiates and owns the `Player`; reparents it across levels; `set_hp()` / `set_player_position()` used by `SaveManager` on load; also holds the shared `INVENTORY_DATA` const (preloads `player_inventory.tres`) that world pickups write to |
 | `SceneTransition` | `GUI/scene_transition/scene_transition.tscn` | Full-screen fade overlay; `fade_out()` / `fade_in()` |
 | `SaveManager` | `00-Globals/global_save_manager.gd` | Save/load to `user://save.sav` (JSON); F5/F9 quick save/load |
 | `PauseMenu` | `GUI/pause_menu/pause_menu.tscn` | Pause overlay (`process_mode = ALWAYS`, `layer = 3`); Resume/Save/Load/Quit buttons |
@@ -264,6 +265,7 @@ Levels live under `Levels/` (`Area01/01.tscn`, `02.tscn`, `03.tscn`, plus the `P
 - `process_mode = ALWAYS`, `layer = 3`.
 - Emits **`shown`** / **`hidden`** signals from `show_pause_menu()` / `hide_pause_menu()` — the inventory UI listens to these to build/clear itself (see Inventory System).
 - Exposes `update_item_description(text)` which writes to the `$Control/ItemDescription` label (driven by inventory slot focus).
+- Exposes `play_audio(audio)` which plays an item's use-sound through its `$Control/ItemEffectAudio` player (used by `HealItemEffect`; see Inventory System).
 - `_unhandled_input` toggles on the `pause` action:
   - `show_pause_menu()` sets `get_tree().paused = true` and grabs focus on the **Resume** button.
   - `hide_pause_menu()` unpauses.
@@ -313,29 +315,49 @@ Levels live under `Levels/` (`Area01/01.tscn`, `02.tscn`, `03.tscn`, plus the `P
 
 ### Inventory System
 
-A resource-driven inventory that renders inside the pause menu. There is **no inventory autoload** — the data lives in a `.tres` and the UI is a node inside the pause menu scene.
+A resource-driven inventory that renders inside the pause menu. There is **no inventory autoload** — the data lives in a `.tres` and the UI is a node inside the pause menu scene. Items are now picked up from the world, stacked, and consumed for effects (no longer read-only).
 
 **Data resources:**
 
-- **`ItemData`** (`Items/scripts/item_data.gd`, `class_name ItemData`, `Resource`) — one item definition: `name`, `description` (`@export_multiline`), `texture`. Concrete items are `.tres` files in `Items/` (`gem.tres`, `potion.tres`, `stone.tres`), all drawing regions from the shared `Items/sprites/items.png` atlas.
-- **`SlotData`** (`GUI/Inventory/scripts/slot_data.gd`, `class_name SlotData`, `Resource`) — one stack: `itemData: ItemData` + `quantity: int`.
-- **`InventoryData`** (`GUI/Inventory/scripts/inventory_data.gd`, `class_name InventoryData`, `Resource`) — `slots: Array[SlotData]` (fixed-size; empty slots are `null`). `add_item()` is an **empty stub**. The player's instance is `GUI/Inventory/player_inventory.tres`.
+- **`ItemData`** (`Items/scripts/item_data.gd`, `class_name ItemData`, `Resource`) — one item definition: `name`, `description` (`@export_multiline`), `texture`, and `effects: Array[ItemEffect]` (under the `"Item Use Effects"` `@export_category`). Concrete items are `.tres` files in `Items/` (`gem.tres`, `potion.tres`, `stone.tres`, `apple.tres`), all drawing regions from the shared `Items/sprites/items.png` atlas.
+  - `use() -> bool` returns `false` when `effects` is empty (so the item isn't consumable), otherwise runs every non-`null` effect's `use()` and returns `true`.
+  - `potion` and `apple` carry a `HealItemEffect`; `gem` and `stone` have **no effects** (their `.tres` references the effect script but assigns no effects array), so they're collectible-only.
+- **`ItemEffect`** (`Items/item_effect/item_effect.gd`, `class_name ItemEffect`, `Resource`) — base class for a usable effect: a `use_description: String` and a `use()` that does nothing by default. Subclass it to add behavior.
+- **`HealItemEffect`** (`Items/item_effect/heal_item_effect.gd`, `class_name HealItemEffect extends ItemEffect`) — `heal_amount: int = 1` + `audio: AudioStream`. `use()` calls `PlayerManager.player.update_hp(heal_amount)` and `PauseMenu.play_audio(audio)`. Potion sets `heal_amount = 2` (one heart); apple keeps the default `1` (half a heart, since each heart = 2 HP).
+- **`SlotData`** (`GUI/Inventory/scripts/slot_data.gd`, `class_name SlotData`, `Resource`) — one stack: `item_data: ItemData` + `quantity: int`. `quantity` has a setter that calls `emit_changed()` once it drops below `1` (this drives slot removal — see below).
+- **`InventoryData`** (`GUI/Inventory/scripts/inventory_data.gd`, `class_name InventoryData`, `Resource`) — `slots: Array[SlotData]` (fixed-size 10; empty slots are `null`). The player's instance is `GUI/Inventory/player_inventory.tres`, which now **starts empty** (all 10 slots `null`; the old seeded gem/potion/stone were removed).
+  - `_init()` calls `connect_slots()`, wiring each existing slot's `changed` signal to `slot_changed`.
+  - `add_item(item_data, count = 1) -> bool` — stacks onto the first slot already holding that `item_data`, else fills the first `null` slot with a new `SlotData` (connecting its `changed`), else pushes a `"Inventory is full"` toast and returns `false`.
+  - `slot_changed()` nulls out any slot whose `quantity < 1` (disconnects its `changed`, sets the entry to `null`) and calls `emit_changed()` so the UI rebuilds.
+
+**World pickups:**
+
+- **`ItemPickup`** (`Items/item_pickup/item_pickup.gd`, `class_name ItemPickup`, `@tool`, `Node2D`; scene `Items/item_pickup/item_pickup.tscn`) — a collectible placed in a level.
+  - Exports `item_data: ItemData`; its setter updates the child `Sprite2D` so the correct icon previews in the editor (`@tool`).
+  - At runtime `_ready()` connects `$Area2D.body_entered`. On a `Player` body it calls `PlayerManager.INVENTORY_DATA.add_item(item_data)`; if that returns `true` it disconnects the signal, plays `$AudioStreamPlayer2D`, hides itself, `await`s the sound, then `queue_free()`s. (If the inventory is full, `add_item` returns `false` and the pickup stays.)
+  - `Levels/Area01/01.tscn` places four of these: **Potion**, **Rock** (`stone`), **Gem**, **Apple**.
 
 **UI:**
 
-- **`InventoryUi`** (`GUI/Inventory/scripts/inventory_Ui.gd`, `class_name InventoryUi`, `Control`) — script on the `GridContainer` inside the pause menu. Holds an `@export var data: InventoryData`.
-  - On `_ready()`: connects `PauseMenu.shown → update_inventory` and `PauseMenu.hidden → clear_inventory`.
-  - `update_inventory()` instantiates one `inventory_slot.tscn` per slot and assigns `new_slot.slot_data = slot`.
-  - `clear_inventory()` `queue_free()`s all children. So the slot nodes are **rebuilt every time the menu opens** and destroyed on close.
+- **`InventoryUi`** (`GUI/Inventory/scripts/inventory_Ui.gd`, `class_name InventoryUi`, `Control`) — script on the `GridContainer` inside the pause menu. Holds an `@export var data: InventoryData` (the same `player_inventory.tres` that `PlayerManager.INVENTORY_DATA` points at).
+  - On `_ready()`: connects `PauseMenu.shown → update_inventory`, `PauseMenu.hidden → clear_inventory`, and `data.changed → on_inventory_changed`, then calls `clear_inventory()`.
+  - `update_inventory()` instantiates one `inventory_slot.tscn` per entry in `data.slots` (**including `null` ones**, so the child count is always 10), assigns `new_slot.slot_data = slot`, and connects each slot's `focus_entered → item_focused` (which records the focused index in `focus_index`).
+  - `on_inventory_changed()` rebuilds the grid (`clear_inventory()` + `update_inventory()`), `await`s one process frame, then re-grabs focus on the previously focused index — so focus survives a slot emptying.
+  - `clear_inventory()` `queue_free()`s all children. Slot nodes are **rebuilt every time the menu opens and on every `data.changed`**, and destroyed on close.
 - **`InventorySlotUI`** (`GUI/Inventory/scripts/inventory_slot_ui.gd`, `class_name InventorySlotUI`, `Button`) — one slot (`GUI/Inventory/inventory_slot.tscn`).
-  - `slot_data` has a setter (`set_slot_data`) that fills `$TextureRect`/`$Label` from `itemData.texture` and `quantity`; early-returns if the slot is `null`.
-  - On focus (`focus_entered`) it pushes `itemData.description` to `PauseMenu.update_item_description()`; on `focus_exited` it clears it.
+  - `slot_data` has a setter (`set_slot_data`) that fills `$TextureRect`/`$Label` from `item_data.texture` and `quantity`; early-returns if the slot is `null`.
+  - On focus (`focus_entered`) it pushes `item_data.description` to `PauseMenu.update_item_description()`; on `focus_exited` it clears it.
+  - On `pressed` (`item_pressed`) it calls `slot_data.item_data.use()`; if that's `false` (non-consumable) it does nothing, otherwise it decrements `quantity` and refreshes the label.
+- **`PauseMenu.play_audio(audio)`** plays an item's use-sound through `$Control/ItemEffectAudio` (an `AudioStreamPlayer`, `volume_db = -10`, `max_polyphony = 4`).
 
 **Gotchas:**
 
 - The pause menu scene **pre-places 10 empty `InventorySlot` instances** in the grid, but `InventoryUi._ready()` calls `clear_inventory()` immediately (freeing them), and slots are then rebuilt from `data.slots` each time the menu opens. The editor-placed instances are effectively just design-time scaffolding.
-- `slot_data` / `itemData` property names must match exactly across the scripts and the `.tres` (an early bug came from a misnamed `itemData` export).
-- Focus handlers must null-check (`slot_data`/`itemData` can be `null`) because empty slots are focusable buttons.
+- The slot's item field is **`item_data`** (renamed from the old `itemData`) — it must match exactly across `slot_data.gd`, `inventory_slot_ui.gd`, and every `.tres` (a misnamed export caused an early bug).
+- Focus handlers must null-check (`slot_data` / `item_data` can be `null`) because every slot — including empty ones — is a focusable button.
+- `use()` returning `false` is what protects non-consumables: pressing a `gem` or `stone` (no effects) does nothing and doesn't decrement the stack.
+- **`changed` only fires on a slot emptying.** `SlotData` emits `changed` solely when `quantity` drops below 1, which bubbles to `InventoryData.slot_changed` (nulls the slot) → `emit_changed()` → `InventoryUi.on_inventory_changed` (rebuild + restore focus). `add_item` (stack or new slot) does **not** emit `changed`, so an already-open inventory only auto-refreshes when a slot empties — world pickups happen while unpaused and just show up next time the menu opens.
+- **Pickups and the UI share one resource.** `ItemPickup` writes to `PlayerManager.INVENTORY_DATA` while `InventoryUi.data` points at the same `player_inventory.tres`; because Godot caches a loaded resource, both see the same `slots`. The inventory is **not yet saved/loaded** by `SaveManager`.
 
 ### Physics Layers
 
