@@ -33,6 +33,7 @@ func _unhandled_input(event):
 func save_game()-> void:
 	update_player_data()
 	update_scene_path()
+	update_item_data()
 	var file := FileAccess.open(SAVE_PATH + "save.sav",FileAccess.WRITE)
 	var save_json = JSON.stringify(current_save)
 	file.store_line( save_json )
@@ -50,7 +51,7 @@ func load_game()-> void:
 
 	PlayerManager.set_player_position(Vector2(current_save.player.pos_x,current_save.player.pos_y))
 	PlayerManager.set_hp(current_save.player.hp,current_save.player.max_hp)
-
+	PlayerManager.INVENTORY_DATA.parse_save_data( current_save.items )
 	await LevelManager.level_loaded
 
 	game_loaded.emit()
@@ -68,3 +69,6 @@ func update_scene_path()-> void:
 	for c in get_tree().root.get_children():
 		if c is Level:
 			current_save.scene_path = c.scene_file_path
+
+func update_item_data()-> void:
+	current_save.items = PlayerManager.INVENTORY_DATA.get_save_data()

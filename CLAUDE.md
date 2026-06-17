@@ -61,12 +61,13 @@ Intended scope (✅ built · 🚧 partial · ⬜ not started):
   - TODO: Enemy with Chase State.
 - 🚧 World exploration — multi-room level transitions exist (`Levels/Area01/01–03`); the world is still small.
 - 🚧 Persistent Data
-  - Pause menu Save/Load works (`SaveManager` persists current level + player HP/position).
-  - `items` / `persistence` / `quests` fields exist in the save dict but aren't wired up yet.
+  - Pause menu Save/Load works (`SaveManager` persists current level + player HP/position + inventory).
+  - The `items` field is now wired up (serialized inventory); `persistence` / `quests` fields exist in the save dict but aren't wired up yet.
 - 🚧 Inventory (Items - Enemy Drops - Treasure Chest)
   - Resource-driven inventory renders in the pause menu (`ItemData` / `SlotData` / `InventoryData` + `InventoryUi`).
   - **Pickup → store → use loop works:** `ItemPickup` props in the world add items to the player inventory (`InventoryData.add_item()` stacks or fills the first empty slot), and consumable items run their `ItemEffect`s when a slot is pressed.
-  - TODO: enemy drops, treasure chests, and saving/loading the inventory (still not persisted by `SaveManager`).
+  - **Inventory now saves/loads:** `SaveManager` serializes the inventory into the save's `items` field (`InventoryData.get_save_data()` / `parse_save_data()`).
+  - TODO: enemy drops, treasure chests.
 - ⬜ Puzzles
 - ⬜ Boomerang
 - ⬜ Music & Audio Manager
