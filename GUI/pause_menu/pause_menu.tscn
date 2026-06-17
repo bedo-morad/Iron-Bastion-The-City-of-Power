@@ -1,13 +1,41 @@
 [gd_scene format=3 uid="uid://cxiq8lt5syv1a"]
 
 [ext_resource type="Script" uid="uid://dr5nwffmf6vf6" path="res://GUI/pause_menu/pause_menu.gd" id="1_4w82k"]
+[ext_resource type="Texture2D" uid="uid://cfckcnq86p87s" path="res://Items/sprites/items.png" id="2_yiq8o"]
+[ext_resource type="Script" uid="uid://n6ohgd2l2h0a" path="res://GUI/Inventory/scripts/inventory_Ui.gd" id="3_36pfd"]
+[ext_resource type="PackedScene" uid="uid://bygmwcfsxim32" path="res://GUI/Inventory/inventory_slot.tscn" id="3_rsqrg"]
+[ext_resource type="Resource" uid="uid://f0mw40v6uxs2" path="res://GUI/Inventory/player_inventory.tres" id="4_ewgu5"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4w82k"]
+atlas = ExtResource("2_yiq8o")
+region = Rect2(96, 0, 32, 32)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_4w82k"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+texture = SubResource("AtlasTexture_4w82k")
+texture_margin_left = 14.0
+texture_margin_top = 14.0
+texture_margin_right = 14.0
+texture_margin_bottom = 14.0
 
 [node name="PauseMenu" type="CanvasLayer" unique_id=1765645722]
 process_mode = 3
 layer = 3
 script = ExtResource("1_4w82k")
 
-[node name="ColorRect" type="ColorRect" parent="." unique_id=108837620]
+[node name="Control" type="Control" parent="." unique_id=106054519]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ColorRect" type="ColorRect" parent="Control" unique_id=108837620]
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -15,49 +43,122 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.1254902, 0.1254902, 0.1254902, 0.78431374)
 
-[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=506825549]
-anchors_preset = 8
+[node name="HBoxContainer" type="HBoxContainer" parent="Control" unique_id=764893782]
+layout_mode = 1
+anchors_preset = 7
 anchor_left = 0.5
-anchor_top = 0.5
+anchor_top = 1.0
 anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -35.0
-offset_top = -43.0
-offset_right = 35.0
-offset_bottom = 111.0
+anchor_bottom = 1.0
+offset_left = -210.0
+offset_top = -50.0
+offset_right = 214.0
+offset_bottom = -19.0
 grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 5
+grow_vertical = 0
+theme_override_constants/separation = 8
 alignment = 1
 
-[node name="Button_Resume" type="Button" parent="VBoxContainer" unique_id=488587585]
+[node name="Button_Resume" type="Button" parent="Control/HBoxContainer" unique_id=488587585]
+custom_minimum_size = Vector2(100, 30)
 layout_mode = 2
 text = "Resume"
 
-[node name="Button_Save" type="Button" parent="VBoxContainer" unique_id=568162017]
+[node name="Button_Save" type="Button" parent="Control/HBoxContainer" unique_id=568162017]
+custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 text = "Save"
 
-[node name="Button_Load" type="Button" parent="VBoxContainer" unique_id=754171350]
+[node name="Button_Load" type="Button" parent="Control/HBoxContainer" unique_id=754171350]
+custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 text = "Load"
 
-[node name="Button_Quit" type="Button" parent="VBoxContainer" unique_id=1467131073]
+[node name="Button_Quit" type="Button" parent="Control/HBoxContainer" unique_id=1467131073]
+custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 text = "Quit
 "
 
-[node name="Label" type="Label" parent="." unique_id=1858555022]
+[node name="GmaeName" type="Label" parent="Control" unique_id=1858555022]
+layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -114.0
-offset_top = -86.0
-offset_right = 115.0
-offset_bottom = -63.0
+offset_left = -210.0
+offset_top = -115.0
+offset_right = 19.0
+offset_bottom = -92.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(1, 1, 1, 0.72156864)
 text = "Iron Bstion: The City of Power"
+
+[node name="ItemDescription" type="Label" parent="Control" unique_id=1585271036]
+custom_minimum_size = Vector2(400, 30)
+layout_mode = 0
+offset_left = 30.0
+offset_top = 168.0
+offset_right = 430.0
+offset_bottom = 216.0
+theme_override_colors/font_color = Color(1, 1, 1, 0.72156864)
+theme_override_font_sizes/font_size = 10
+autowrap_mode = 2
+text_overrun_behavior = 4
+
+[node name="PanelContainer" type="PanelContainer" parent="Control" unique_id=1181507554]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -210.0
+offset_top = -65.0
+offset_right = -14.0
+offset_bottom = 23.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_4w82k")
+
+[node name="GridContainer" type="GridContainer" parent="Control/PanelContainer" unique_id=2091674766]
+layout_mode = 2
+columns = 5
+script = ExtResource("3_36pfd")
+data = ExtResource("4_ewgu5")
+
+[node name="InventorySlot" parent="Control/PanelContainer/GridContainer" unique_id=1752331352 instance=ExtResource("3_rsqrg")]
+layout_mode = 2
+
+[node name="InventorySlot2" parent="Control/PanelContainer/GridContainer" unique_id=1720477009 instance=ExtResource("3_rsqrg")]
+layout_mode = 2
+
+[node name="InventorySlot3" parent="Control/PanelContainer/GridContainer" unique_id=367298309 instance=ExtResource("3_rsqrg")]
+layout_mode = 2
+
+[node name="InventorySlot4" parent="Control/PanelContainer/GridContainer" unique_id=1969123742 instance=ExtResource("3_rsqrg")]
+layout_mode = 2
+
+[node name="InventorySlot5" parent="Control/PanelContainer/GridContainer" unique_id=793020003 instance=ExtResource("3_rsqrg")]
+layout_mode = 2
+
+[node name="InventorySlot6" parent="Control/PanelContainer/GridContainer" unique_id=2134110691 instance=ExtResource("3_rsqrg")]
+layout_mode = 2
+
+[node name="InventorySlot7" parent="Control/PanelContainer/GridContainer" unique_id=130603324 instance=ExtResource("3_rsqrg")]
+layout_mode = 2
+
+[node name="InventorySlot8" parent="Control/PanelContainer/GridContainer" unique_id=615520297 instance=ExtResource("3_rsqrg")]
+layout_mode = 2
+
+[node name="InventorySlot9" parent="Control/PanelContainer/GridContainer" unique_id=1785830225 instance=ExtResource("3_rsqrg")]
+layout_mode = 2
+
+[node name="InventorySlot10" parent="Control/PanelContainer/GridContainer" unique_id=2113175256 instance=ExtResource("3_rsqrg")]
+layout_mode = 2
+
+[node name="ItemEffectAudio" type="AudioStreamPlayer" parent="Control" unique_id=1382767725]
+volume_db = -10.0
+max_polyphony = 4

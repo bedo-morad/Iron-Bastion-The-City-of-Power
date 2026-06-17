@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://2ap5gyrqkrvn"]
+
+[ext_resource type="Script" uid="uid://b24qg7w85ixsf" path="res://Items/scripts/item_data.gd" id="1_6sq6v"]
+[ext_resource type="Script" uid="uid://bgj8xfgwrhwin" path="res://Items/item_effect/item_effect.gd" id="1_gqhqt"]
+[ext_resource type="Texture2D" uid="uid://cfckcnq86p87s" path="res://Items/sprites/items.png" id="2_gqhqt"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6sq6v"]
+atlas = ExtResource("2_gqhqt")
+region = Rect2(64, 0, 32, 32)
+
+[resource]
+script = ExtResource("1_6sq6v")
+name = "Stone"
+description = "Just a stone. Fits nicely in the palm."
+texture = SubResource("AtlasTexture_6sq6v")
+metadata/_custom_type_script = "uid://b24qg7w85ixsf"
