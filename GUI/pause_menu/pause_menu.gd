@@ -1,9 +1,13 @@
 extends CanvasLayer
 
-@onready var button_resume : Button = $VBoxContainer/Button_Resume
-@onready var button_save : Button = $VBoxContainer/Button_Save
-@onready var button_load : Button = $VBoxContainer/Button_Load
-@onready var button_quit : Button = $VBoxContainer/Button_Quit
+signal shown
+signal hidden
+
+@onready var button_resume : Button = $Control/HBoxContainer/Button_Resume
+@onready var button_load : Button = $Control/HBoxContainer/Button_Load
+@onready var button_save : Button = $Control/HBoxContainer/Button_Save
+@onready var button_quit : Button = $Control/HBoxContainer/Button_Quit
+@onready var item_description : Label = $Control/ItemDescription
 
 var is_paused: bool = false
 
@@ -30,12 +34,14 @@ func show_pause_menu() -> void:
 	visible = true
 	is_paused = true
 	button_resume.grab_focus()
+	shown.emit()
 
 
 func hide_pause_menu() -> void:
 	get_tree().paused = false
 	visible = false
 	is_paused = false
+	hidden.emit()
 
 func _on_save_pressed()-> void:
 	if is_paused == false:
@@ -59,3 +65,6 @@ func _on_resume_pressed()-> void:
 func _on_quit_pressed()-> void:
 	get_tree().quit()
 	pass
+
+func update_item_description(new_description:String) -> void:
+	item_description.text = new_description

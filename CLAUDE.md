@@ -63,7 +63,9 @@ Intended scope (✅ built · 🚧 partial · ⬜ not started):
 - 🚧 Persistent Data
   - Pause menu Save/Load works (`SaveManager` persists current level + player HP/position).
   - `items` / `persistence` / `quests` fields exist in the save dict but aren't wired up yet.
-- ⬜ Inventory (Items - Enemy Drops - Treasure Chest)
+- 🚧 Inventory (Items - Enemy Drops - Treasure Chest)
+  - Resource-driven inventory renders in the pause menu (`ItemData` / `SlotData` / `InventoryData` + `InventoryUi`).
+  - **Read-only so far:** `InventoryData.add_item()` is an empty stub, nothing collects items, and the inventory isn't saved/loaded yet.
 - ⬜ Puzzles
 - ⬜ Boomerang
 - ⬜ Music & Audio Manager
@@ -260,6 +262,8 @@ Levels live under `Levels/` (`Area01/01.tscn`, `02.tscn`, `03.tscn`, plus the `P
 **`PauseMenu`** (`GUI/pause_menu/pause_menu.gd`, `CanvasLayer`, autoload).
 
 - `process_mode = ALWAYS`, `layer = 3`.
+- Emits **`shown`** / **`hidden`** signals from `show_pause_menu()` / `hide_pause_menu()` — the inventory UI listens to these to build/clear itself (see Inventory System).
+- Exposes `update_item_description(text)` which writes to the `$Control/ItemDescription` label (driven by inventory slot focus).
 - `_unhandled_input` toggles on the `pause` action:
   - `show_pause_menu()` sets `get_tree().paused = true` and grabs focus on the **Resume** button.
   - `hide_pause_menu()` unpauses.
@@ -306,6 +310,32 @@ Levels live under `Levels/` (`Area01/01.tscn`, `02.tscn`, `03.tscn`, plus the `P
 - Animation: 3 s total — fade-in → hold → fade-out. When it finishes, the item `queue_free()`s itself.
 - Used by `SaveManager` to surface "Game Saved" / "Game Loaded" feedback.
 - Intended as the general-purpose channel for short, non-interactive messages. Reserve "notification" for richer popups later (quests, achievements).
+
+### Inventory System
+
+A resource-driven inventory that renders inside the pause menu. There is **no inventory autoload** — the data lives in a `.tres` and the UI is a node inside the pause menu scene.
+
+**Data resources:**
+
+- **`ItemData`** (`Items/scripts/item_data.gd`, `class_name ItemData`, `Resource`) — one item definition: `name`, `description` (`@export_multiline`), `texture`. Concrete items are `.tres` files in `Items/` (`gem.tres`, `potion.tres`, `stone.tres`), all drawing regions from the shared `Items/sprites/items.png` atlas.
+- **`SlotData`** (`GUI/Inventory/scripts/slot_data.gd`, `class_name SlotData`, `Resource`) — one stack: `itemData: ItemData` + `quantity: int`.
+- **`InventoryData`** (`GUI/Inventory/scripts/inventory_data.gd`, `class_name InventoryData`, `Resource`) — `slots: Array[SlotData]` (fixed-size; empty slots are `null`). `add_item()` is an **empty stub**. The player's instance is `GUI/Inventory/player_inventory.tres`.
+
+**UI:**
+
+- **`InventoryUi`** (`GUI/Inventory/scripts/inventory_Ui.gd`, `class_name InventoryUi`, `Control`) — script on the `GridContainer` inside the pause menu. Holds an `@export var data: InventoryData`.
+  - On `_ready()`: connects `PauseMenu.shown → update_inventory` and `PauseMenu.hidden → clear_inventory`.
+  - `update_inventory()` instantiates one `inventory_slot.tscn` per slot and assigns `new_slot.slot_data = slot`.
+  - `clear_inventory()` `queue_free()`s all children. So the slot nodes are **rebuilt every time the menu opens** and destroyed on close.
+- **`InventorySlotUI`** (`GUI/Inventory/scripts/inventory_slot_ui.gd`, `class_name InventorySlotUI`, `Button`) — one slot (`GUI/Inventory/inventory_slot.tscn`).
+  - `slot_data` has a setter (`set_slot_data`) that fills `$TextureRect`/`$Label` from `itemData.texture` and `quantity`; early-returns if the slot is `null`.
+  - On focus (`focus_entered`) it pushes `itemData.description` to `PauseMenu.update_item_description()`; on `focus_exited` it clears it.
+
+**Gotchas:**
+
+- The pause menu scene **pre-places 10 empty `InventorySlot` instances** in the grid, but `InventoryUi._ready()` calls `clear_inventory()` immediately (freeing them), and slots are then rebuilt from `data.slots` each time the menu opens. The editor-placed instances are effectively just design-time scaffolding.
+- `slot_data` / `itemData` property names must match exactly across the scripts and the `.tres` (an early bug came from a misnamed `itemData` export).
+- Focus handlers must null-check (`slot_data`/`itemData` can be `null`) because empty slots are focusable buttons.
 
 ### Physics Layers
 
