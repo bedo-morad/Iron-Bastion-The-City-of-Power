@@ -282,7 +282,8 @@ Levels live under `Levels/` (`Area01/01.tscn`, `02.tscn`, `03.tscn`, plus the `P
 - Holds an in-memory `current_save: Dictionary`:
   - `scene_path`
   - `player {hp, max_hp, pos_x, pos_y}`
-  - Stub arrays: `items` / `persistence` / `quests` (declared but not yet written/read by anything).
+  - `items` — written/read as the serialized inventory (see below).
+  - `persistence` / `quests` remain declared-but-unused stub arrays.
 - Signals: `game_saved`, `game_loaded`.
 - Quick save/load: handles **`quick_save` (F5)** / **`quick_load` (F9)** in `_unhandled_input` — pauses the tree, runs save/load, unpauses.
 
@@ -290,16 +291,17 @@ Levels live under `Levels/` (`Area01/01.tscn`, `02.tscn`, `03.tscn`, plus the `P
 
 1. Calls `update_player_data()` — reads `PlayerManager.player.hp` / `max_hp` / `global_position`.
 2. Calls `update_scene_path()` — scans `get_tree().root` children for a `Level` and stores its `scene_file_path`.
-3. `JSON.stringify`s the dict, writes one line.
-4. Emits `game_saved`.
-5. `ToastManager.push_message("Game Saved")`.
+3. Calls `update_item_data()` — stores `PlayerManager.INVENTORY_DATA.get_save_data()` into `current_save.items`.
+4. `JSON.stringify`s the dict, writes one line.
+5. Emits `game_saved`.
+6. `ToastManager.push_message("Game Saved")`.
 
 **`load_game()`:**
 
 1. Parses the save file.
 2. Calls `LevelManager.load_new_level(scene_path, "", Vector2.ZERO)` — empty `target_transition` → no `LevelTransition` repositions the player.
 3. `await`s `level_load_started`.
-4. Restores position via `PlayerManager.set_player_position()` and HP via `PlayerManager.set_hp()`.
+4. Restores position via `PlayerManager.set_player_position()`, HP via `PlayerManager.set_hp()`, and the inventory via `PlayerManager.INVENTORY_DATA.parse_save_data(current_save.items)`.
 5. `await`s `level_loaded`.
 6. Emits `game_loaded`.
 7. `ToastManager.push_message("Game Loaded")`.
@@ -330,6 +332,11 @@ A resource-driven inventory that renders inside the pause menu. There is **no in
   - `_init()` calls `connect_slots()`, wiring each existing slot's `changed` signal to `slot_changed`.
   - `add_item(item_data, count = 1) -> bool` — stacks onto the first slot already holding that `item_data`, else fills the first `null` slot with a new `SlotData` (connecting its `changed`), else pushes a `"Inventory is full"` toast and returns `false`.
   - `slot_changed()` nulls out any slot whose `quantity < 1` (disconnects its `changed`, sets the entry to `null`) and calls `emit_changed()` so the UI rebuilds.
+  - **Save/load serialization** (used by `SaveManager`):
+    - `get_save_data() -> Array` maps every slot through `item_to_save()`, producing a fixed-length array (one entry per slot).
+    - `item_to_save(slot) -> Dictionary` returns `{item_resource_path, quantity}`; an empty slot encodes as `{"", 0}`, otherwise it stores the `ItemData`'s `resource_path` and the stack `quantity`.
+    - `parse_save_data(save_data)` clears + re-sizes `slots`, rebuilds each entry via `item_from_save()`, then calls `connect_slots()` to re-wire the `changed` signals.
+    - `item_from_save(save_object) -> SlotData` returns `null` for an empty `item_resource_path`, else `load()`s the `ItemData` by path into a new `SlotData` and sets its `quantity`.
 
 **World pickups:**
 
@@ -358,7 +365,8 @@ A resource-driven inventory that renders inside the pause menu. There is **no in
 - Focus handlers must null-check (`slot_data` / `item_data` can be `null`) because every slot — including empty ones — is a focusable button.
 - `use()` returning `false` is what protects non-consumables: pressing a `gem` or `stone` (no effects) does nothing and doesn't decrement the stack.
 - **`changed` only fires on a slot emptying.** `SlotData` emits `changed` solely when `quantity` drops below 1, which bubbles to `InventoryData.slot_changed` (nulls the slot) → `emit_changed()` → `InventoryUi.on_inventory_changed` (rebuild + restore focus). `add_item` (stack or new slot) does **not** emit `changed`, so an already-open inventory only auto-refreshes when a slot empties — world pickups happen while unpaused and just show up next time the menu opens.
-- **Pickups and the UI share one resource.** `ItemPickup` writes to `PlayerManager.INVENTORY_DATA` while `InventoryUi.data` points at the same `player_inventory.tres`; because Godot caches a loaded resource, both see the same `slots`. The inventory is **not yet saved/loaded** by `SaveManager`.
+- **Pickups, the UI, and saves share one resource.** `ItemPickup` writes to `PlayerManager.INVENTORY_DATA` while `InventoryUi.data` points at the same `player_inventory.tres`; because Godot caches a loaded resource, both see the same `slots`. `SaveManager` persists that same instance through `get_save_data()` / `parse_save_data()`, so a load mutates the shared resource in place.
+- **Saved items are referenced by `resource_path`.** `item_from_save()` `load()`s each item's `.tres` by path, so renaming or moving an item resource breaks existing saves (the path won't resolve).
 
 ### Physics Layers
 
