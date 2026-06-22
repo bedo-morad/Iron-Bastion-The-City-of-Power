@@ -67,7 +67,8 @@ Intended scope (✅ built · 🚧 partial · ⬜ not started):
   - Resource-driven inventory renders in the pause menu (`ItemData` / `SlotData` / `InventoryData` + `InventoryUi`).
   - **Pickup → store → use loop works:** `ItemPickup` props in the world add items to the player inventory (`InventoryData.add_item()` stacks or fills the first empty slot), and consumable items run their `ItemEffect`s when a slot is pressed.
   - **Inventory now saves/loads:** `SaveManager` serializes the inventory into the save's `items` field (`InventoryData.get_save_data()` / `parse_save_data()`).
-  - TODO: enemy drops, treasure chests.
+  - **Enemy drops work:** dying enemies spawn `ItemPickup`s via `EnemyStateDestroy` + per-enemy `DropData` (probability + amount range); the pickups are physics bodies that scatter, bounce off walls, and bob (see Enemy System / Inventory System).
+  - TODO: treasure chests.
 - ⬜ Puzzles
 - ⬜ Boomerang
 - ⬜ Music & Audio Manager
@@ -171,12 +172,20 @@ Mirrors the player pattern, with these specifics:
   - Returns to `next_state` (Idle) when the animation ends. No timer — duration = animation length.
 - `EnemyStateDestroy` — terminal death state:
   - `init()` connects `enemy.enemy_destroyed`.
-  - Plays `destroy_<dir>` then `queue_free()`.
+  - On enter: knocks back, plays `destroy_<dir>`, disables the `HurtBox`, **drops items** (`drop_items()`), then `queue_free()`s when the animation finishes.
+  - Exports `drops: Array[DropData]` (under the `"Item Drops"` `@export_category`) and `preload`s the `ItemPickup` scene.
+  - `drop_items()` walks each `DropData`, rolls `get_drop_count()`, and for each rolled item instantiates an `ItemPickup`, sets its `item_data`, `call_deferred("add_child", ...)`s it onto the enemy's parent (so it survives the enemy freeing), positions it at the enemy, and gives it a randomly-rotated `velocity` based on the enemy's so drops scatter outward.
+
+**`DropData`** (`Enemies/Scripts/drop_data.gd`, `class_name DropData`, `Resource`) — one drop-table entry:
+
+- `item_data: ItemData`, `probability` (0–100 %), `min_amount` / `max_amount` (1–10).
+- `get_drop_count()` returns `0` if a `randf_range(0, 100)` roll fails the `probability`, otherwise a `randi_range(min_amount, max_amount)`.
 
 **`Slime`** (`Enemies/Slime/Slime.tscn`) is the one concrete enemy.
 
 - State children in order: `Idle → Wonder → Stun → Destroy`.
 - Carries both a `HurtBox` (deals contact damage to the player) and a `HitBox` (receives the player's attacks).
+- Its `Destroy` state's `drops` array holds two `DropData` entries: a **gem** (100 %, up to 2) and an **apple** (25 %, 1).
 
 ### Combat: HitBox / HurtBox Pattern
 
@@ -340,10 +349,12 @@ A resource-driven inventory that renders inside the pause menu. There is **no in
 
 **World pickups:**
 
-- **`ItemPickup`** (`Items/item_pickup/item_pickup.gd`, `class_name ItemPickup`, `@tool`, `Node2D`; scene `Items/item_pickup/item_pickup.tscn`) — a collectible placed in a level.
+- **`ItemPickup`** (`Items/item_pickup/item_pickup.gd`, `class_name ItemPickup`, `@tool`, `CharacterBody2D`; scene `Items/item_pickup/item_pickup.tscn`) — a collectible placed in a level *or* spawned by an enemy drop.
   - Exports `item_data: ItemData`; its setter updates the child `Sprite2D` so the correct icon previews in the editor (`@tool`).
   - At runtime `_ready()` connects `$Area2D.body_entered`. On a `Player` body it calls `PlayerManager.INVENTORY_DATA.add_item(item_data)`; if that returns `true` it disconnects the signal, plays `$AudioStreamPlayer2D`, hides itself, `await`s the sound, then `queue_free()`s. (If the inventory is full, `add_item` returns `false` and the pickup stays.)
-  - `Levels/Area01/01.tscn` places four of these: **Potion**, **Rock** (`stone`), **Gem**, **Apple**.
+  - **It's now a physics body** (`CharacterBody2D`, `collision_mask` = Walls): `_physics_process` `move_and_collide`s its `velocity`, bounces off whatever it hits, and applies linear drag (`velocity -= velocity * delta * 4`) so dropped items scatter from the enemy, ricochet off walls, and coast to a stop. Placed (non-dropped) pickups just sit still (zero velocity).
+  - The scene also carries a `ShadowSprite2D` and an `AnimationPlayer` autoplaying a `"default"` bob animation on the `Sprite2D`.
+  - `Levels/Area01/01.tscn` places four of these directly: **Potion**, **Rock** (`stone`), **Gem**, **Apple**; enemies spawn more at runtime (see Enemy System → `EnemyStateDestroy` / `DropData`).
 
 **UI:**
 
