@@ -23,6 +23,7 @@ func enter() -> void:
 	enemy.velocity = _direction * -knockback_speed
 	enemy.update_animation(animation_name)
 	enemy.animation_player.animation_finished.connect(_on_animation_finished)
+	disable_hurt_box()
 	pass
 
 
@@ -50,3 +51,8 @@ func _on_enemy_destroyed(hurt_box: HurtBox) -> void:
 
 func _on_animation_finished(_a: String):
 	enemy.queue_free()
+
+func disable_hurt_box() -> void:
+	var hurt_box : HurtBox = enemy.get_node_or_null("HurtBox")
+	if hurt_box:
+		hurt_box.monitoring = false
