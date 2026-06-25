@@ -10,6 +10,7 @@
 [ext_resource type="Resource" uid="uid://2ap5gyrqkrvn" path="res://Items/stone.tres" id="8_an23e"]
 [ext_resource type="Resource" uid="uid://cimxtm4fqfbua" path="res://Items/gem.tres" id="9_c2gse"]
 [ext_resource type="Resource" uid="uid://4hcuvpjxk66y" path="res://Items/apple.tres" id="10_f2d14"]
+[ext_resource type="PackedScene" uid="uid://d3xidg0j4dr52" path="res://Interactable/TreasureChest/treasure_chest.tscn" id="11_an23e"]
 
 [node name="01" type="Node2D" unique_id=1090707633]
 script = ExtResource("1_chooo")
@@ -45,17 +46,31 @@ size = 3
 side = 3
 
 [node name="Potion" parent="." unique_id=1760214503 instance=ExtResource("6_b60gt")]
-position = Vector2(51, 173)
+position = Vector2(46, 108)
 item_data = ExtResource("7_f2d14")
 
 [node name="Rock" parent="." unique_id=1156786256 instance=ExtResource("6_b60gt")]
-position = Vector2(107, 105)
+position = Vector2(44.247543, 154.62303)
 item_data = ExtResource("8_an23e")
 
 [node name="Gem" parent="." unique_id=660832390 instance=ExtResource("6_b60gt")]
-position = Vector2(105, 199)
+position = Vector2(56.317337, 213.86946)
 item_data = ExtResource("9_c2gse")
 
 [node name="Apple" parent="." unique_id=368707527 instance=ExtResource("6_b60gt")]
-position = Vector2(137, 160)
+position = Vector2(45, 236.34163)
 item_data = ExtResource("10_f2d14")
+
+[node name="TreasureChest" parent="." unique_id=1103910045 instance=ExtResource("11_an23e")]
+position = Vector2(180, 80)
+item_data = ExtResource("10_f2d14")
+quantity = 3
+
+[node name="TreasureChest2" parent="." unique_id=1796854889 instance=ExtResource("11_an23e")]
+position = Vector2(250, 60)
+item_data = ExtResource("9_c2gse")
+quantity = 5
+
+[node name="TreasureChest3" parent="." unique_id=2074522207 instance=ExtResource("11_an23e")]
+position = Vector2(320, 80)
+item_data = ExtResource("7_f2d14")
