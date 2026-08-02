@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://c1cjiiggnixbc" path="res://Levels/Scripts/level.gd" id="1_chooo"]
 [ext_resource type="PackedScene" uid="uid://c31gfmliq8ka4" path="res://Tile Maps/grass-01.tscn" id="1_vbl6q"]
 [ext_resource type="PackedScene" uid="uid://c0ibu5uyx2gcv" path="res://Levels/player_spawn.tscn" id="2_chooo"]
-[ext_resource type="PackedScene" uid="uid://c8ynr27tqmvnn" path="res://Scenes/Props/Plants/plant.tscn" id="4_4t7i1"]
+[ext_resource type="PackedScene" uid="uid://c8ynr27tqmvnn" path="res://Props/Plants/plant.tscn" id="4_4t7i1"]
 [ext_resource type="PackedScene" uid="uid://c1brmsoy2x2h" path="res://Levels/level_transition.tscn" id="5_pwydo"]
 [ext_resource type="PackedScene" uid="uid://dhdaadcpqf4a8" path="res://Items/item_pickup/item_pickup.tscn" id="6_b60gt"]
 [ext_resource type="Resource" uid="uid://di11uuseryb0o" path="res://Items/potion.tres" id="7_f2d14"]
