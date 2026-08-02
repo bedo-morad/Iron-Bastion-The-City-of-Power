@@ -67,7 +67,9 @@ Intended scope (✅ built · 🚧 partial · ⬜ not started):
   - Resource-driven inventory renders in the pause menu (`ItemData` / `SlotData` / `InventoryData` + `InventoryUi`).
   - **Pickup → store → use loop works:** `ItemPickup` props in the world add items to the player inventory (`InventoryData.add_item()` stacks or fills the first empty slot), and consumable items run their `ItemEffect`s when a slot is pressed.
   - **Inventory now saves/loads:** `SaveManager` serializes the inventory into the save's `items` field (`InventoryData.get_save_data()` / `parse_save_data()`).
-  - TODO: enemy drops, treasure chests.
+  - **Enemy drops work:** dying enemies spawn `ItemPickup`s via `EnemyStateDestroy` + per-enemy `DropData` (probability + amount range); the pickups are physics bodies that scatter, bounce off walls, and bob (see Enemy System / Inventory System).
+  - **Treasure chests work:** `TreasureChest` (`Interactable/TreasureChest/`) is an area-based interactable that opens on `interact` input, plays an `open_chest` animation (item sprite pops up + fade out), and adds its `item_data` × `quantity` to the player inventory via `PlayerManager.INVENTORY_DATA.add_item()`. The chest's `Area2D` (mask = `PlayerInteract`) connects/disconnects `PlayerManager.interact_pressed` on area enter/exit. Three chests placed in `Levels/Area01/01.tscn`.
+  - TODO: Persistent Data
 - ⬜ Puzzles
 - ⬜ Boomerang
 - ⬜ Music & Audio Manager
@@ -99,7 +101,7 @@ Listed in `project.godot` → `[autoload]`, in load order:
 |---|---|---|
 | `LevelManager` | `00-Globals/global_level_manager.gd` | Tilemap bounds (`tile_map_bounds_changed`) and level-load orchestration: `load_new_level()`, `level_load_started` / `level_loaded` signals |
 | `PlayerHud` | `GUI/HUD/player_hud.tscn` | On-screen heart HUD; redrawn via `update_hp(hp, max_hp)` |
-| `PlayerManager` | `00-Globals/global_player_manager.gd` | Instantiates and owns the `Player`; reparents it across levels; `set_hp()` / `set_player_position()` used by `SaveManager` on load; also holds the shared `INVENTORY_DATA` const (preloads `player_inventory.tres`) that world pickups write to |
+| `PlayerManager` | `00-Globals/global_player_manager.gd` | Instantiates and owns the `Player`; reparents it across levels; `set_hp()` / `set_player_position()` used by `SaveManager` on load; also holds the shared `INVENTORY_DATA` const (preloads `player_inventory.tres`) that world pickups write to; emits `interact_pressed` signal (connected by interactables like `TreasureChest`) |
 | `SceneTransition` | `GUI/scene_transition/scene_transition.tscn` | Full-screen fade overlay; `fade_out()` / `fade_in()` |
 | `SaveManager` | `00-Globals/global_save_manager.gd` | Save/load to `user://save.sav` (JSON); F5/F9 quick save/load |
 | `PauseMenu` | `GUI/pause_menu/pause_menu.tscn` | Pause overlay (`process_mode = ALWAYS`, `layer = 3`); Resume/Save/Load/Quit buttons |
@@ -141,7 +143,7 @@ Listed in `project.godot` → `[autoload]`, in load order:
 - On enter: applies knockback away from the `hurt_box`, calls `make_invulnerable`, plays `stun_<dir>` + the `"damaged"` effect, blocks input, and decelerates.
 - Returns to `Idle` when the stun animation finishes.
 
-**`PlayerInteractionsHost`** — rotates to match player facing; child of the Player node.
+**`PlayerInteractionsHost`** — rotates to match player facing; child of the Player node. Now contains an `Area2D` (layer 3 / `PlayerInteract`, `monitoring = false`) used as the detection zone for interactables. When the player presses `interact` in `StateIdle` or `StateWalk`, `PlayerManager.interact_pressed` is emitted; interactables (like `TreasureChest`) connect to this signal while the player overlaps their own `Area2D`.
 
 ### Enemy System
 
@@ -171,12 +173,20 @@ Mirrors the player pattern, with these specifics:
   - Returns to `next_state` (Idle) when the animation ends. No timer — duration = animation length.
 - `EnemyStateDestroy` — terminal death state:
   - `init()` connects `enemy.enemy_destroyed`.
-  - Plays `destroy_<dir>` then `queue_free()`.
+  - On enter: knocks back, plays `destroy_<dir>`, disables the `HurtBox`, **drops items** (`drop_items()`), then `queue_free()`s when the animation finishes.
+  - Exports `drops: Array[DropData]` (under the `"Item Drops"` `@export_category`) and `preload`s the `ItemPickup` scene.
+  - `drop_items()` walks each `DropData`, rolls `get_drop_count()`, and for each rolled item instantiates an `ItemPickup`, sets its `item_data`, `call_deferred("add_child", ...)`s it onto the enemy's parent (so it survives the enemy freeing), positions it at the enemy, and gives it a randomly-rotated `velocity` based on the enemy's so drops scatter outward.
+
+**`DropData`** (`Enemies/Scripts/drop_data.gd`, `class_name DropData`, `Resource`) — one drop-table entry:
+
+- `item_data: ItemData`, `probability` (0–100 %), `min_amount` / `max_amount` (1–10).
+- `get_drop_count()` returns `0` if a `randf_range(0, 100)` roll fails the `probability`, otherwise a `randi_range(min_amount, max_amount)`.
 
 **`Slime`** (`Enemies/Slime/Slime.tscn`) is the one concrete enemy.
 
 - State children in order: `Idle → Wonder → Stun → Destroy`.
 - Carries both a `HurtBox` (deals contact damage to the player) and a `HitBox` (receives the player's attacks).
+- Its `Destroy` state's `drops` array holds two `DropData` entries: a **gem** (100 %, up to 2) and an **apple** (25 %, 1).
 
 ### Combat: HitBox / HurtBox Pattern
 
@@ -200,6 +210,18 @@ Owners respond differently:
 - **Player** → `take_damage` → `StateStun` (or the HP-reset placeholder).
 - **Enemy** → `_take_damage` → `EnemyStateStun` (`hp > 0`) or `EnemyStateDestroy` (`hp <= 0`).
 - **`Plant`** (`Scenes/Props/Plants/plant.gd`) → `queue_free()`.
+
+### Treasure Chests
+
+**`TreasureChest`** (`Interactable/TreasureChest/treasure_chest.gd`, `class_name TreasureChest`, `@tool`, `Node2D`; scene `Interactable/TreasureChest/treasure_chest.tscn`) — an area-based interactable container.
+
+- Exports `item_data: ItemData` and `quantity: int` (both with `@tool` setters for editor preview).
+- `@onready` refs: `itemSprite` ($ItemSprite), `label` ($ItemSprite/Label), `animation_player`, `interact_area` ($Area2D).
+- `isOpen: bool` — prevents double-opening.
+- At runtime, `interact_area.area_entered` connects `PlayerManager.interact_pressed → _player_interact`; `area_exited` disconnects it.
+- `_player_interact()`: sets `isOpen = true`, plays `"open_chest"` animation, then calls `PlayerManager.INVENTORY_DATA.add_item(item_data, quantity)`. Prints an error if `item_data` is null or `quantity ≤ 0`.
+- Scene structure: `Sprite2D` (hframes=2, closed/open frames) + `ItemSprite` (item icon, animated on open) + `Label` (quantity "x3") + `AnimationPlayer` (libraries: `closed`, `open_chest`, `opened`, `RESET`) + `AudioStreamPlayer2D` (open sound played by animation track) + `StaticBody2D` (layer 16 / `Interactable`, solid collision) + `Area2D` (mask = 4 / `PlayerInteract`, for detection).
+- `"open_chest"` animation (1.5 s): sprite frame 0→1, ItemSprite pops up (y: -10 → -64 → -54), flashes white, then fades out. Sound plays at 0.1 s.
 
 ### Camera & Tilemap Bounds
 
@@ -340,10 +362,12 @@ A resource-driven inventory that renders inside the pause menu. There is **no in
 
 **World pickups:**
 
-- **`ItemPickup`** (`Items/item_pickup/item_pickup.gd`, `class_name ItemPickup`, `@tool`, `Node2D`; scene `Items/item_pickup/item_pickup.tscn`) — a collectible placed in a level.
+- **`ItemPickup`** (`Items/item_pickup/item_pickup.gd`, `class_name ItemPickup`, `@tool`, `CharacterBody2D`; scene `Items/item_pickup/item_pickup.tscn`) — a collectible placed in a level *or* spawned by an enemy drop.
   - Exports `item_data: ItemData`; its setter updates the child `Sprite2D` so the correct icon previews in the editor (`@tool`).
   - At runtime `_ready()` connects `$Area2D.body_entered`. On a `Player` body it calls `PlayerManager.INVENTORY_DATA.add_item(item_data)`; if that returns `true` it disconnects the signal, plays `$AudioStreamPlayer2D`, hides itself, `await`s the sound, then `queue_free()`s. (If the inventory is full, `add_item` returns `false` and the pickup stays.)
-  - `Levels/Area01/01.tscn` places four of these: **Potion**, **Rock** (`stone`), **Gem**, **Apple**.
+  - **It's now a physics body** (`CharacterBody2D`, `collision_mask` = Walls): `_physics_process` `move_and_collide`s its `velocity`, bounces off whatever it hits, and applies linear drag (`velocity -= velocity * delta * 4`) so dropped items scatter from the enemy, ricochet off walls, and coast to a stop. Placed (non-dropped) pickups just sit still (zero velocity).
+  - The scene also carries a `ShadowSprite2D` and an `AnimationPlayer` autoplaying a `"default"` bob animation on the `Sprite2D`.
+  - `Levels/Area01/01.tscn` places four of these directly: **Potion**, **Rock** (`stone`), **Gem**, **Apple**; enemies spawn more at runtime (see Enemy System → `EnemyStateDestroy` / `DropData`); treasure chests also add items (see Treasure Chests).
 
 **UI:**
 
@@ -376,14 +400,17 @@ Defined in `project.godot`:
 |---|---|
 | 1 | Player |
 | 2 | PlayerHurt |
+| 3 | PlayerInteract |
 | 5 | Walls |
 | 9 | Enemy |
 
 ### Input Actions
 
-**Gameplay actions:** `up`, `down`, `left`, `right`, `attack`, `pause`, `quick_save` (F5), `quick_load` (F9).
+**Gameplay actions:** `up`, `down`, `left`, `right`, `attack`, `interact`, `pause`, `quick_save` (F5), `quick_load` (F9).
 
 - WASD + arrow keys + gamepad.
+- `attack` = Z / gamepad button 2 (Xbox X / PlayStation Square).
+- `interact` = X / gamepad button 0 (Xbox A / PlayStation Cross).
 - `pause` = Esc / gamepad button 6.
 
 **UI actions:** Godot's built-in `ui_accept`, `ui_cancel`, `ui_up` / `ui_down` / `ui_left` / `ui_right` are re-bound in `project.godot` so the pause menu navigates with both keyboard and gamepad.
@@ -417,6 +444,8 @@ Defined in `project.godot`:
 
 - Both `StateStun` and `EnemyStateStun` transition via a `*_damaged` signal calling `change_state()` directly, not via a state's return value.
 - This is so they can interrupt any current state.
+
+**`interact` input triggers via `PlayerManager.interact_pressed`.** `StateIdle` and `StateWalk` both emit `PlayerManager.interact_pressed` on `interact` press. Interactables (currently `TreasureChest`) connect to this signal while the player overlaps their `Area2D` (mask = `PlayerInteract`). The player's `Interactions` host has an `Area2D` on layer 3 but `monitoring = false` — interactables detect the player, not the other way around.
 
 **Player can't die yet.** The `hp <= 0` path resets HP to full (placeholder, not a death/game-over flow).
 

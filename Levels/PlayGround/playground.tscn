@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://c0ibu5uyx2gcv" path="res://Levels/player_spawn.tscn" id="4_jkwsa"]
 [ext_resource type="PackedScene" uid="uid://butunsqnb6oq" path="res://Enemies/Slime/Slime.tscn" id="4_qyfof"]
 [ext_resource type="PackedScene" uid="uid://c31gfmliq8ka4" path="res://Tile Maps/grass-01.tscn" id="5_3e07v"]
-[ext_resource type="PackedScene" uid="uid://c8ynr27tqmvnn" path="res://Scenes/Props/Plants/plant.tscn" id="6_vl51c"]
+[ext_resource type="PackedScene" uid="uid://c8ynr27tqmvnn" path="res://Props/Plants/plant.tscn" id="6_vl51c"]
 
 [node name="Playground" type="Node2D" unique_id=171079669]
 z_as_relative = false

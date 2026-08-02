@@ -20,9 +20,9 @@ func enter() -> void:
 	audio.pitch_scale = randf_range(0.9,1.1)
 	audio.play()
 	attacking = true
-	
 	await get_tree().create_timer(0.075).timeout
-	hurt_box.monitoring = true
+	if attacking:
+		hurt_box.monitoring = true
 	pass
 
 #what happens when the player exits this state?

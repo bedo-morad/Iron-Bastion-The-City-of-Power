@@ -3,6 +3,8 @@ extends Node
 const PLAYER = preload("uid://cks32sa15nuch")
 const INVENTORY_DATA : InventoryData = preload("res://GUI/Inventory/player_inventory.tres")
 
+signal interact_pressed
+
 var player: Player
 var player_spawned: bool = false
 

@@ -10,10 +10,10 @@
 [ext_resource type="Script" uid="uid://ckif15peapqr0" path="res://Player/Scripts/state_attack.gd" id="6_fhl08"]
 [ext_resource type="AudioStream" uid="uid://mg3gobok6024" path="res://Player/Audio/swing2.wav" id="8_od3ui"]
 [ext_resource type="Script" uid="uid://da15whjo3ii6l" path="res://Player/Scripts/PlayerInteractionsHost.gd" id="10_apopc"]
-[ext_resource type="PackedScene" uid="uid://cwflfhwgny61f" path="res://Scenes/HurtBox/hurt_box.tscn" id="10_x3vf3"]
+[ext_resource type="PackedScene" uid="uid://cwflfhwgny61f" path="res://GneralNodes/HurtBox/hurt_box.tscn" id="10_x3vf3"]
 [ext_resource type="Script" uid="uid://cmkh2d68xgyly" path="res://Player/Scripts/player_camera.gd" id="11_5htga"]
 [ext_resource type="Script" uid="uid://dlaavesejk4gy" path="res://Player/Scripts/state_stun.gd" id="11_dkpta"]
-[ext_resource type="PackedScene" uid="uid://k76gp6vpuxqr" path="res://Scenes/HitBox/hit_box.tscn" id="13_p5o4e"]
+[ext_resource type="PackedScene" uid="uid://k76gp6vpuxqr" path="res://GneralNodes/HitBox/hit_box.tscn" id="13_p5o4e"]
 [ext_resource type="AudioStream" uid="uid://be38p2xs6fq4o" path="res://Player/Audio/hit_player.wav" id="15_lfmf2"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_6xle2"]
@@ -519,6 +519,8 @@ _data = {
 &"walk_up": SubResource("Animation_od3ui")
 }
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_dkpta"]
+
 [sub_resource type="CircleShape2D" id="CircleShape2D_gu6f8"]
 
 [sub_resource type="Animation" id="Animation_n471f"]
@@ -661,6 +663,16 @@ max_polyphony = 4
 
 [node name="Interactions" type="Node2D" parent="." unique_id=2053018720]
 script = ExtResource("10_apopc")
+
+[node name="Area2D" type="Area2D" parent="Interactions" unique_id=414422385]
+position = Vector2(0, 6)
+collision_layer = 4
+collision_mask = 0
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Interactions/Area2D" unique_id=1487106862]
+shape = SubResource("RectangleShape2D_dkpta")
+debug_color = Color(0.071292885, 0.70196074, 0, 0.41960785)
 
 [node name="HitBox" parent="." unique_id=1531244829 instance=ExtResource("13_p5o4e")]
 collision_layer = 2
