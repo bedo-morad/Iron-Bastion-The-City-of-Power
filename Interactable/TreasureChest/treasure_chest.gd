@@ -11,6 +11,7 @@ extends Node2D
 @onready var label: Label = $ItemSprite/Label
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
 @onready var interact_area: Area2D = $Area2D
+@onready var is_open_data : PersistentDataHandler = $IsOpen
 
 var isOpen: bool = false
 
@@ -22,13 +23,22 @@ func _ready() -> void:
 		return
 	interact_area.area_entered.connect(_on_area_enter)
 	interact_area.area_exited.connect(_on_area_exit)
+	is_open_data.data_loaded.connect(set_chest_state)
+	set_chest_state()
 	pass
 
+func set_chest_state() -> void:
+	isOpen = is_open_data.value
+	if isOpen:
+		animation_player.play("opened")
+	else:
+		animation_player.play("closed")	
 
 func _player_interact() -> void:
 	if isOpen:
 		return
 	isOpen = true
+	is_open_data.set_value()
 	animation_player.play("open_chest")
 	if item_data and quantity > 0:
 		PlayerManager.INVENTORY_DATA.add_item(item_data, quantity)
