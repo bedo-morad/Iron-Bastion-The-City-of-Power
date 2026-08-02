@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://d3xidg0j4dr52"]
 
 [ext_resource type="Script" uid="uid://b8pvch5l3qwlu" path="res://Interactable/TreasureChest/treasure_chest.gd" id="1_4vvrh"]
+[ext_resource type="PackedScene" uid="uid://2finxkp83tpo" path="res://GneralNodes/PersistentDataHandler/persistent_data_handler.tscn" id="2_1ucwu"]
 [ext_resource type="Texture2D" uid="uid://cn4l57ejls7dw" path="res://Interactable/TreasureChest/treasure-chest.png" id="2_4761t"]
 [ext_resource type="AudioStream" uid="uid://bo3wgu782dy3h" path="res://Interactable/TreasureChest/treasure-open.wav" id="4_1ucwu"]
 
@@ -192,6 +193,7 @@ size = Vector2(32, 10)
 size = Vector2(35, 20)
 
 [node name="TreasureChest" type="Node2D" unique_id=1103910045]
+process_mode = 3
 script = ExtResource("1_4vvrh")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1547884399]
@@ -235,3 +237,5 @@ monitorable = false
 position = Vector2(0, 4)
 shape = SubResource("RectangleShape2D_1ucwu")
 debug_color = Color(0.115165435, 0.70196074, 0, 0.41960785)
+
+[node name="IsOpen" parent="." unique_id=2090970730 instance=ExtResource("2_1ucwu")]
