@@ -6,6 +6,8 @@
 [ext_resource type="PackedScene" uid="uid://butunsqnb6oq" path="res://Enemies/Slime/Slime.tscn" id="4_mwxiv"]
 [ext_resource type="PackedScene" uid="uid://c8ynr27tqmvnn" path="res://Props/Plants/plant.tscn" id="5_wi5as"]
 [ext_resource type="PackedScene" uid="uid://c1brmsoy2x2h" path="res://Levels/level_transition.tscn" id="6_wi5as"]
+[ext_resource type="PackedScene" uid="uid://d3xidg0j4dr52" path="res://Interactable/TreasureChest/treasure_chest.tscn" id="7_ua1y0"]
+[ext_resource type="Resource" uid="uid://4hcuvpjxk66y" path="res://Items/apple.tres" id="8_jeo2k"]
 
 [node name="02" type="Node2D" unique_id=569189854]
 script = ExtResource("1_x70af")
@@ -75,3 +77,8 @@ level = "uid://m4rddtweauit"
 target_transition_area = "LevelTransition2"
 size = 3
 side = 3
+
+[node name="TreasureChest" parent="." unique_id=1103910045 instance=ExtResource("7_ua1y0")]
+position = Vector2(462, 13)
+item_data = ExtResource("8_jeo2k")
+quantity = 3
