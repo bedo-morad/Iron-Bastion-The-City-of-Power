@@ -6,6 +6,11 @@
 [ext_resource type="PackedScene" uid="uid://c8ynr27tqmvnn" path="res://Props/Plants/plant.tscn" id="4_koc1c"]
 [ext_resource type="PackedScene" uid="uid://butunsqnb6oq" path="res://Enemies/Slime/Slime.tscn" id="5_jvg0d"]
 [ext_resource type="PackedScene" uid="uid://c1brmsoy2x2h" path="res://Levels/level_transition.tscn" id="6_jvg0d"]
+[ext_resource type="PackedScene" uid="uid://dhdaadcpqf4a8" path="res://Items/item_pickup/item_pickup.tscn" id="7_lry6g"]
+[ext_resource type="Resource" uid="uid://di11uuseryb0o" path="res://Items/potion.tres" id="8_v72oj"]
+[ext_resource type="Resource" uid="uid://2ap5gyrqkrvn" path="res://Items/stone.tres" id="9_q54cq"]
+[ext_resource type="Resource" uid="uid://cimxtm4fqfbua" path="res://Items/gem.tres" id="10_55lxj"]
+[ext_resource type="Resource" uid="uid://4hcuvpjxk66y" path="res://Items/apple.tres" id="11_n7k4n"]
 
 [node name="03" type="Node2D" unique_id=1090707633]
 script = ExtResource("1_diysa")
@@ -50,3 +55,19 @@ level = "uid://be85hh402grep"
 target_transition_area = "LevelTransition2"
 size = 3
 side = 2
+
+[node name="Potion" parent="." unique_id=375489141 instance=ExtResource("7_lry6g")]
+position = Vector2(521, 11)
+item_data = ExtResource("8_v72oj")
+
+[node name="Rock" parent="." unique_id=1607642395 instance=ExtResource("7_lry6g")]
+position = Vector2(83, 236)
+item_data = ExtResource("9_q54cq")
+
+[node name="Gem" parent="." unique_id=1628511477 instance=ExtResource("7_lry6g")]
+position = Vector2(85, 18)
+item_data = ExtResource("10_55lxj")
+
+[node name="Apple" parent="." unique_id=1158307284 instance=ExtResource("7_lry6g")]
+position = Vector2(430, 10.041131)
+item_data = ExtResource("11_n7k4n")
